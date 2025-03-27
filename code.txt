@@ -1,0 +1,197 @@
+/*Use of AI / Cognitive Assistance Software is not allowed in any evaluation, assessment or exercise.*/
+/*=============================================================================
+File Name: ELNC6013ND.c 
+Author:	Nishaben Desai 
+Date:	19/06/2024 
+Modified: None
+  Fanshawe College, 2024
+ 
+
+=============================================================================*/
+
+
+/* Preprocessor ===============================================================
+Hardware Configuration Bits ==============================================*/
+#pragma config FOSC	= INTIO67
+#pragma config PLLCFG = OFF 
+#pragma config PRICLKEN = ON 
+#pragma config FCMEN = OFF 
+#pragma config IESO = OFF 
+#pragma config PWRTEN = OFF 
+#pragma config BOREN = ON 
+#pragma config BORV = 285 
+#pragma config WDTEN = OFF 
+#pragma config PBADEN = OFF 
+#pragma config LVP = OFF 
+#pragma config MCLRE = EXTMCLR
+
+// Libraries ==================================================================
+#include <p18f45k22.h>
+#include <stdio.h> 
+#include <stdlib.h>
+
+// Constants =================================================================
+ 
+#define TRUE  1
+#define FALSE 0
+#define LED1	LATDbits.LATD2
+#define LED2	LATDbits.LATD3 
+#define PB1 PORTAbits RA7 
+#define PBMASK 0x80
+#define PB1PRESS 0x00 
+#define BYTE 8
+#define LOWVALUE 25
+#define ADCCHANNEL 0
+#define TEMPCHAN 0
+#define LEVEL1 45
+
+
+// Functions =================================================================
+
+
+/*>>> setoscillator: ===========================================================
+Author:	Nishaben Desai 
+Date:	19/06/2024
+Modified: None
+Desc:	This function will configure the OSC module by setting 4Mhz frequency and wait for the frequency to be stable.
+Input:	None 
+Returns: None
+============================================================================*/
+void setOscillator(void)
+ 
+{
+OSCCON = 0x52;
+while(!OSCCONbits.HFIOFS);
+
+
+} // eo setOscillator::
+
+
+/*>>> configurePorts: ===========================================================
+Author:	Nishaben Desai 
+Date:19/06/2024 
+Modified: None
+Desc:This function will configure the I/O port modules. 
+Input:	None
+Returns: None
+============================================================================*/
+void configurePorts(void)
+{
+ANSELA = 0x01; //set all pins on port A to analog operation LATA = 0x00; //output voltage is 0
+TRISA = 0xFF; //set input 1
+
+
+ANSELB = 0x00; //set all pins on port B to digital operation LATB = 0x00; //output voltage is 0
+TRISB = 0xFF; //set input 1
+
+
+ANSELC = 0x00; //set all pins on port C to digital operation
+ 
+LATC = 0x00; //output voltage is 0 TRISC = 0xFF; //set input 1
+
+ANSELD = 0x00; //set all pins on port D to digital operation LATD = 0x00;	//output voltage is 0
+TRISD = 0xF0; //set input 1
+
+
+ANSELE = 0x00; //set all pins on port E to digital operation LATE = 0x00; //output voltage is 0
+TRISE = 0xFF; //set input 1
+
+
+} // eo configurePorts::
+
+
+/*>>> sp1Config: ===========================================================
+Author:	Nishaben Desai 
+Date: 19/06/2024 
+Modified: None
+Desc: This function will on Serial port,TX & RX enabled, 8bit transmission, No parity, 9600 baud rate.
+Input: None
+Returns: None
+============================================================================*/
+void sp1Config()
+{
+SPBRG1 = LOWVALUE; //low byte
+ 
+BAUDCON1 = 0X40; RCSTA1 = 0X90; TXSTA1 = 0X26;
+}//eo sp1Config::
+
+
+/*>>> configADC: ===========================================================
+Author:	Nishaben Desai 
+Date:	05/06/2024 
+Modified: None
+Desc: This function will configure the ADC modules. 
+Input: None
+Returns: None
+============================================================================*/
+void configADC(void)
+{
+ADCON0=0x01; //turn on ADC module ADCON1=0x00; //select the refrence
+ADCON2=0xA9;	//set the clock &time and justify right
+}//eo configADC::
+
+
+/*>>>	systemInititalizion:
+===========================================================
+Author: Nishaben Desai 
+Date: 19/06/2024 
+Modified: None
+Desc: This function will call all three functions,which are setOscillator,
+configurePorts,configADC.
+Input:	None
+Returns:  None
+============================================================================*/
+void systemInititalizion()
+{
+setOscillator(); configurePorts(); sp1Config(); configADC();
+
+}// systemInititalizion::
+
+
+/*>>> getADCSample: ===========================================================
+Author:	Nishaben Desai 
+Date: 05/06/2024 
+Modified: None
+Desc:This function will sample from the ADC modules. 
+Input: char
+Returns: int
+============================================================================*/
+int getADCSample(char chan)
+{
+ADCON0bits.CHS=chan; //select channel ADCON0bits.GO=TRUE; //start conversion
+ 
+while(ADCON0bits.GO); //conversion finish go return ADRES;	//return value
+
+}//eo getADCSample::
+
+
+/*=== MAIN: FUNCTION ==========================================================
+============================================================================*/
+void main( void )
+{
+char pushbutton = 0; int adcResult = 0;
+int temresult = 0; systemInititalizion(); while(TRUE)
+{
+pushbutton = PORTA & PBMASK; switch(pushbutton)
+{
+case PB1PRESS:
+adcResult = getADCSample(TEMPCHAN);
+//intf("%d",adcResult);
+temresult = adcResult * 0.09765625; printf("\033[1\033[1f\rTemprature is : %d" , temresult); if( temresult < LEVEL1)
+{
+ 
+LED2 = TRUE;//green led on LED1 = FALSE;
+printf("\033[2\033[2H"); printf("\033[2\033[2f"); printf("\033[2K\033[2fTemprature is low");
+}
+else
+{
+LED1 = TRUE; //red led on LED2 = FALSE;
+printf("\033[2\033[2H"); printf("\033[2\033[2f"); printf("\033[2K\033[2fTemprature is high");
+
+}
+break; default:
+LED1 = FALSE; //red led on LED2 = FALSE;
+break;
+}//eo switch*
+}//eo while
+} // eo main::
