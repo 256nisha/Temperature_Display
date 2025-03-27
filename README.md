@@ -31,9 +31,3 @@ LED Indicators: Red LED lights up for high temperatures, while the green LED lig
 
 
 
-Project Setup Instructions:
-Set up the circuit with the PIC18F45K22 microcontroller, potentiometer, pushbutton, LEDs, and power supply.
-
-Upload the provided code to the microcontroller.
-
-Use Tera Term to view the output temperature data via USART communication.
